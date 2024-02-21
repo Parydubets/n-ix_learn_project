@@ -1,9 +1,14 @@
-from sqlalchemy import Column, Integer, Numeric, String, Date, Boolean, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import create_engine, Column, Integer, Numeric, String, Date, Boolean, ForeignKey
+from sqlalchemy.orm import relationship, mapped_column
 from flask_sqlalchemy import SQLAlchemy
+import os
 
 db = SQLAlchemy()
-
+engine = create_engine(os.getenv("SQLALCHEMY_DATABASE_URI"), echo=False)
+film_genre = db.Table('film_genre',
+    db.Column('film_id', db.Integer, db.ForeignKey('films.film_id')),
+    db.Column('genre_id', db.Integer, db.ForeignKey('genres.genre_id'))
+)
 
 class Genre(db.Model):
     __tablename__ = "genres"
@@ -19,7 +24,7 @@ class Director(db.Model):
     first_name      = Column(String, nullable=False)
     last_name       = Column(String, nullable=False)
     date_of_birth   = Column(Date, nullable=False)
-    films           = relationship('Film', backref='users')
+    films = db.relationship('Film', backref='director')
 
 
 class User(db.Model):
@@ -33,7 +38,7 @@ class User(db.Model):
     password    = Column(String, nullable=False)
     phone       = Column(String, nullable=False)
     is_admin    = Column(Boolean, nullable=False)
-    films = relationship('Film', backref='users')
+    films = db.relationship('Film', backref='user')
 
 
 class Film(db.Model):
@@ -45,5 +50,6 @@ class Film(db.Model):
     description     = Column(String, nullable=True)
     rating          = Column(Numeric, nullable=False)
     poster          = Column(String, nullable=False)
-    users_user_id   = Column(Integer, ForeignKey('users.user_id'))
-    directors_director_id = Column(Integer, ForeignKey('directors.director_id'))
+    users_user_id   = mapped_column(ForeignKey("users.user_id"))
+    directors_director_id   = mapped_column(ForeignKey("directors.director_id"))
+    genres = db.relationship("Genre", secondary=film_genre)
