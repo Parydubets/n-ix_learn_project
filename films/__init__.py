@@ -1,19 +1,22 @@
 import os
 import csv
+import subprocess
 from flask import Flask, request, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
 from flask_restful import Resource, Api
 from flask_login import LoginManager, login_required
 from flask_migrate import Migrate
 from .models import db, User, Film, Director, Genre
-from sqlalchemy import select
+from sqlalchemy import select, engine
+from dotenv import load_dotenv
+
 
 
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
     api = Api(app)
-
+    load_dotenv()
     SWAGGER_URL = os.getenv("SWAGGER_URL")
     API_URL = os.getenv("API_URL")
     swagger_ui_blueprint = get_swaggerui_blueprint(
@@ -35,7 +38,7 @@ def create_app(test_config=None):
         #app.config.from_mapping(test_config)
         app.config.from_mapping(
             SECRET_KEY=os.getenv("SECRET_KEY"),
-            SQLALCHEMY_DATABASE_URI=os.getenv("TEST_SQLALCHEMY_DATABASE_URI")
+            SQLALCHEMY_DATABASE_URI=os.getenv("SQLALCHEMY_DATABASE_URI")
         )
 
         # ensure the instance folder exists
@@ -60,12 +63,22 @@ def create_app(test_config=None):
 
     class HelloWorld(Resource):
         def get(self):
+            return 'Hello, world!  '+str(os.getenv("SQLALCHEMY_DATABASE_URI")), 200
+
+
+    class HelloThere(Resource):
+        def get(self):
+            subprocess.run(["flask", "db", "upgrade"])
+            subprocess.run(["flask", "db", "migrate"])
+            subprocess.run(["flask", "db", "upgrade"])
+            subprocess.run(["flask", "seed"])
             return 'Hello, world!', 200
 
 
     class Films(Resource):
         #@login_required
         def get(self):
+            print(os.getenv("TEST_SQLALCHEMY_DATABASE_URI"))
             all_films = db.session.query(Film).order_by(Film.film_id).all()
             for item in all_films:
                 print(item.film_id, item.name, item.rating, "./static/"+item.poster+".jpg")
@@ -77,6 +90,7 @@ def create_app(test_config=None):
 
     api.add_resource(Films, "/api/films")
     api.add_resource(HelloWorld, "/api/hello")
+    api.add_resource(HelloThere, "/api/seed")
 
 
     def seed_from_file_decorator(function):
@@ -102,9 +116,9 @@ def create_app(test_config=None):
                     else:
                         values = dict(zip(result[1], item))
                         object_in = result[2](**values)
-
                     if 'is_admin' in result[1]:
-                        values['is_admin'] = True if values['is_admin'] == 'True' else False
+                        object_in.is_admin = bool(values['is_admin'])
+
                     db.session.add(object_in)
                     db.session.commit()
             return result
