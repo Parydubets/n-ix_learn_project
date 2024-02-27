@@ -7,8 +7,9 @@ from flask_restful import Resource, Api
 from flask_login import LoginManager, login_required
 from flask_migrate import Migrate
 from .models import db, User, Film, Director, Genre
-from sqlalchemy import select, engine
+from sqlalchemy import select, engine, create_engine
 from dotenv import load_dotenv
+from sqlalchemy_utils import database_exists, create_database
 
 
 
@@ -145,4 +146,6 @@ def create_app(test_config=None):
             seed_from_file("./tests/users_mock.csv", 'Users')
             seed_from_file("./tests/genres_mock.csv", 'Genres')
             seed_from_file("./tests/films_mock.csv", 'Films')
+
+
     return app

@@ -1,14 +1,10 @@
 from sqlalchemy import create_engine, Column, Integer, Numeric, String, Date, Boolean, ForeignKey, create_engine
 from sqlalchemy.orm import relationship, mapped_column
 from flask_sqlalchemy import SQLAlchemy
-import os
-from sqlalchemy_utils import database_exists, create_database
 
 
 db = SQLAlchemy()
-engine = create_engine(os.getenv("SQLALCHEMY_DATABASE_URI"), echo=False)
-if not database_exists(engine.url):
-    create_database(engine.url)
+
 film_genre = db.Table('film_genre',
     db.Column('film_id', db.Integer, db.ForeignKey('films.film_id')),
     db.Column('genre_id', db.Integer, db.ForeignKey('genres.genre_id'))

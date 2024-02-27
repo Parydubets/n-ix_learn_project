@@ -8,8 +8,13 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
-      POSTRGES_DB: test
+      POSTGRES_DB: ${POSTGRES_USER:-videoteka}
       PGDATA: /data/postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - postgres:/data/postgres
     ports:
@@ -42,8 +47,16 @@ services:
       - "4000:4000"
     env_file:
       .docker_env
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - postgres
+    entrypoint: >
+      bash -c "flask db upgrade
+      && flask db migrate
+      && flask db upgrade
+      && flask seed"
 
 
 
