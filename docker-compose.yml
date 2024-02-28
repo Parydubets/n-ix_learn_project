@@ -1,7 +1,27 @@
-version: "3.11"
+version: '3.8'
 
 services:
-  postgres:
+  web:
+    build: services/web
+    command: python manage.py run -h 0.0.0.0
+    volumes:
+      - ./services/web/:/usr/src/app/
+    ports:
+      - 5001:5000
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - db
+    networks:
+      - postgres
+  nginx:
+    build: ./services/nginx
+    ports:
+      - 1337:80
+    depends_on:
+      - web
+
+  db:
     container_name: flpostgres
     hostname: flpostgres
     image: postgres
@@ -16,7 +36,7 @@ services:
       timeout: 5s
       retries: 5
     volumes:
-      - postgres:/data/postgres
+      - postgres:/var/lib/postgresql/data/
     ports:
       - "5432:5432"
     networks:
@@ -39,32 +59,12 @@ services:
       - postgres
     restart: unless-stopped
 
-  flask_app:
-    container_name: flask_app
-    image: flast_app/films_app:1.0.0
-    build: .
-    ports:
-      - "4000:4000"
-    env_file:
-      .docker_env
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - postgres
-    entrypoint: >
-      bash -c "flask db upgrade
-      && flask db migrate
-      && flask db upgrade
-      && flask seed"
-
-
 
 networks:
   postgres:
     driver: bridge
 
 volumes:
-  postgres:
+  postgres_data:
   pgadmin:
-  flask_app_migrate:
+  postgres:

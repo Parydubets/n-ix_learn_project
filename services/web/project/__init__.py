@@ -1,16 +1,13 @@
 import os
 import csv
 import subprocess
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from flask_swagger_ui import get_swaggerui_blueprint
 from flask_restful import Resource, Api
-from flask_login import LoginManager, login_required
+from flask_login import LoginManager
 from flask_migrate import Migrate
 from .models import db, User, Film, Director, Genre
-from sqlalchemy import select, engine, create_engine
 from dotenv import load_dotenv
-from sqlalchemy_utils import database_exists, create_database
-
 
 
 def create_app(test_config=None):
@@ -53,7 +50,7 @@ def create_app(test_config=None):
     db.init_app(app)
 
 
-    migrate = Migrate(app, db, 'films/migrations')
+    migrate = Migrate(app, db, 'web/migrations')
 
 
     @login_manager.user_loader
@@ -83,13 +80,13 @@ def create_app(test_config=None):
             all_films = db.session.query(Film).order_by(Film.film_id).all()
             for item in all_films:
                 print(item.film_id, item.name, item.rating, "./static/"+item.poster+".jpg")
-            return {"app_name": "films"}, 200
+            return {"app_name": "web"}, 200
 
         def post(self):
             return {"app_name": request.get_json()["app_name"]}, 200
 
 
-    api.add_resource(Films, "/api/films")
+    api.add_resource(Films, "/api/web")
     api.add_resource(HelloWorld, "/api/hello")
     api.add_resource(HelloThere, "/api/seed")
 
@@ -142,10 +139,14 @@ def create_app(test_config=None):
     @app.cli.command('seed')
     def seed():
         with app.app_context():
-            seed_from_file("./tests/directors_mock.csv", 'Directors')
-            seed_from_file("./tests/users_mock.csv", 'Users')
-            seed_from_file("./tests/genres_mock.csv", 'Genres')
-            seed_from_file("./tests/films_mock.csv", 'Films')
+            subprocess.run(["flask", "db", "init"])
+            subprocess.run(["flask", "db", "upgrade"])
+            subprocess.run(["flask", "db", "migrate"])
+            subprocess.run(["flask", "db", "upgrade"])
+            seed_from_file("./project/tests/directors_mock.csv", 'Directors')
+            seed_from_file("./project/tests/users_mock.csv", 'Users')
+            seed_from_file("./project/tests/genres_mock.csv", 'Genres')
+            seed_from_file("./project/tests/films_mock.csv", 'Films')
 
 
     return app
