@@ -1,12 +1,12 @@
-from sqlalchemy import create_engine, Column, Integer, Numeric, String, Date, Boolean, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, Numeric, String, Date, Boolean, ForeignKey, create_engine
 from sqlalchemy.orm import relationship, mapped_column
 from flask_sqlalchemy import SQLAlchemy
-import os
+
 
 db = SQLAlchemy()
-#engine = create_engine(os.getenv("SQLALCHEMY_DATABASE_URI"), echo=False)
+
 film_genre = db.Table('film_genre',
-    db.Column('film_id', db.Integer, db.ForeignKey('films.film_id')),
+    db.Column('film_id', db.Integer, db.ForeignKey('web.film_id')),
     db.Column('genre_id', db.Integer, db.ForeignKey('genres.genre_id'))
 )
 
@@ -42,7 +42,7 @@ class User(db.Model):
 
 
 class Film(db.Model):
-    __tablename__ = "films"
+    __tablename__ = "web"
 
     film_id         = Column(Integer, primary_key=True)
     name            = Column(String, nullable=False)
