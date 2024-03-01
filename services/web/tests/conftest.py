@@ -1,5 +1,5 @@
 import pytest
-from services.films import create_app
+from ..project import create_app
 
 @pytest.fixture()
 def app():

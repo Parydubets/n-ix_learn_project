@@ -1,3 +1,4 @@
+""" The project init """
 import os
 import csv
 import subprocess
@@ -6,11 +7,19 @@ from flask_swagger_ui import get_swaggerui_blueprint
 from flask_restful import Resource, Api
 from flask_login import LoginManager
 from flask_migrate import Migrate
-from .models import db, User, Film, Director, Genre
 from dotenv import load_dotenv
+from .models import db, User, Film, Director, Genre
 
 
 def create_app(test_config=None):
+    """
+    The app creation func
+
+    @param test_config:
+    @type test_config:
+    @return:
+    @rtype:
+    """
     # create and configure the app
     app = Flask(__name__)
     api = Api(app)
@@ -55,17 +64,25 @@ def create_app(test_config=None):
 
     @login_manager.user_loader
     def load_user():
-        # since the user_id is just the primary key of our user table, use it in the query for the user
         pass
 
-
+    """ Sample endpoint """
     class HelloWorld(Resource):
         def get(self):
-            return 'Hello, world!  '+str(os.getenv("SQLALCHEMY_DATABASE_URI")), 200
+            """
+            @return: Hello world, <SQLALCHEMY_DATABASE_URI>
+            @rtype: String
+            """
+            return 'SQLALCHEMY_DATABASE_URI:   '+str(os.getenv("SQLALCHEMY_DATABASE_URI")), 200
 
 
+    """ Sample endpoint  """
     class HelloThere(Resource):
         def get(self):
+            """
+            @return: Hello, world!
+            @rtype: String
+            """
             subprocess.run(["flask", "db", "upgrade"])
             subprocess.run(["flask", "db", "migrate"])
             subprocess.run(["flask", "db", "upgrade"])
@@ -73,9 +90,15 @@ def create_app(test_config=None):
             return 'Hello, world!', 200
 
 
+    """ Sample endpoint """
     class Films(Resource):
         #@login_required
         def get(self):
+            """
+
+            @return: "app_name": "web" + films list in console
+            @rtype: json + list
+            """
             print(os.getenv("TEST_SQLALCHEMY_DATABASE_URI"))
             all_films = db.session.query(Film).order_by(Film.film_id).all()
             for item in all_films:
@@ -83,6 +106,11 @@ def create_app(test_config=None):
             return {"app_name": "web"}, 200
 
         def post(self):
+            """
+
+            @return: app name
+            @rtype: json
+            """
             return {"app_name": request.get_json()["app_name"]}, 200
 
 
@@ -143,10 +171,9 @@ def create_app(test_config=None):
             subprocess.run(["flask", "db", "upgrade"])
             subprocess.run(["flask", "db", "migrate"])
             subprocess.run(["flask", "db", "upgrade"])
-            seed_from_file("./project/tests/directors_mock.csv", 'Directors')
-            seed_from_file("./project/tests/users_mock.csv", 'Users')
-            seed_from_file("./project/tests/genres_mock.csv", 'Genres')
-            seed_from_file("./project/tests/films_mock.csv", 'Films')
-
+            seed_from_file("./project/static/seed/directors_mock.csv", 'Directors')
+            seed_from_file("./project/static/seed/users_mock.csv", 'Users')
+            seed_from_file("./project/static/seed/genres_mock.csv", 'Genres')
+            seed_from_file("./project/static/seed/films_mock.csv", 'Films')
 
     return app
