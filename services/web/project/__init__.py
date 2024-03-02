@@ -2,10 +2,9 @@
 import os
 import csv
 import subprocess
-from flask import Flask, request
+from flask import Flask
 from flask_swagger_ui import get_swaggerui_blueprint
 from flask_restful import Resource, Api
-from flask_login import LoginManager
 from flask_migrate import Migrate
 from dotenv import load_dotenv
 from .models import db, User, Film, Director, Genre
@@ -27,54 +26,29 @@ def create_app(test_config=None):
     app = Flask(__name__)
     api = Api(app)
     load_dotenv()
-    SWAGGER_URL = os.getenv("SWAGGER_URL")
-    API_URL = os.getenv("API_URL")
     swagger_ui_blueprint = get_swaggerui_blueprint(
-        SWAGGER_URL,
-        API_URL,
+        os.getenv("SWAGGER_URL"),
+        os.getenv("API_URL"),
         config={
             'app_name': 'Access API'
         }
     )
     if test_config is None:
-        # load the instance config, if it exists, when not testing
-        # app.config.from_pyfile('config.py', silent=True)
         app.config.from_mapping(
             SECRET_KEY=os.getenv("SECRET_KEY"),
             SQLALCHEMY_DATABASE_URI=os.getenv("SQLALCHEMY_DATABASE_URI")
         )
     else:
-        # load the test config if passed in
-        #app.config.from_mapping(test_config)
         app.config.from_mapping(
             SECRET_KEY=os.getenv("SECRET_KEY"),
-            SQLALCHEMY_DATABASE_URI=os.getenv("SQLALCHEMY_DATABASE_URI")
+            SQLALCHEMY_DATABASE_URI=os.getenv("TEST_SQLALCHEMY_DATABASE_URI")
         )
-
-        # ensure the instance folder exists
-    try:
-        os.makedirs(app.instance_path)
-    except OSError:
-        pass
-    login_manager = LoginManager()
-    login_manager.init_app(app)
-
-    app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
-    app.register_blueprint(films_api)
-    app.register_blueprint(directors_api)
-    app.register_blueprint(login_api)
-
-    db.init_app(app)
 
 
     migrate = Migrate(app, db, 'web/migrations')
 
+    db.init_app(app)
 
-    @login_manager.user_loader
-    def load_user():
-        pass
-
-    """ Sample endpoint """
     class HelloWorld(Resource):
         def get(self):
             """
@@ -84,7 +58,6 @@ def create_app(test_config=None):
             return 'SQLALCHEMY_DATABASE_URI:   '+str(os.getenv("SQLALCHEMY_DATABASE_URI")), 200
 
 
-    """ Sample endpoint  """
     class Seed(Resource):
         def get(self):
             """
@@ -98,15 +71,10 @@ def create_app(test_config=None):
             return {"message": "Hello, World!"}, 200
 
 
-        def post(self):
-            """
-
-            @return: app name
-            @rtype: json
-            """
-            return {"app_name": request.get_json()["app_name"]}, 200
-
-
+    app.register_blueprint(swagger_ui_blueprint, url_prefix=os.getenv("SWAGGER_URL"))
+    app.register_blueprint(films_api)
+    app.register_blueprint(directors_api)
+    app.register_blueprint(login_api)
     api.add_resource(HelloWorld, "/")
     api.add_resource(Seed, "/api/seed")
 
@@ -114,10 +82,9 @@ def create_app(test_config=None):
     def seed_from_file_decorator(function):
         def wrapper(*args, **kwargs):
             result = function(*args, **kwargs)
-            file = open(result[0], "r")
+            with open(result[0], "r") as f:
+                file = f.read()
             data = list(csv.reader(file, delimiter=","))
-            file.close()
-            file.close()
             is_created = result[2].query.first()
             if not is_created:
                 for item in data:

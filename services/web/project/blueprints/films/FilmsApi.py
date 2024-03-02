@@ -1,15 +1,15 @@
 from flask_restful import Resource
 from flask import request
+from ...service import get_Films
 
 
 class FilmsApi(Resource):
     def get(self):
         parameters = request.args
-        print(parameters)
         if len(parameters) > 0:
             return {"message": "This endpoint returns filtered/sorted films list"}, 200
 
-        return {"message": "This endpoint returns films list"}, 200
+        return {"message": print(get_Films(2).items)}, 200
 
     def post(self):
         return {"message": "Successfully added new film"}, 200
