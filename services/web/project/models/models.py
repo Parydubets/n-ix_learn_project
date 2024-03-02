@@ -1,5 +1,5 @@
-from sqlalchemy import create_engine, Column, Integer, Numeric, String, Date, Boolean, ForeignKey, create_engine
-from sqlalchemy.orm import relationship, mapped_column
+from sqlalchemy import Column, Integer, Numeric, String, Date, Boolean, ForeignKey, create_engine
+from sqlalchemy.orm import mapped_column
 from flask_sqlalchemy import SQLAlchemy
 
 

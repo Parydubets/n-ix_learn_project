@@ -9,6 +9,9 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 from dotenv import load_dotenv
 from .models import db, User, Film, Director, Genre
+from .blueprints.films import films_api
+from .blueprints.directors import directors_api
+from .blueprints.login import login_api
 
 
 def create_app(test_config=None):
@@ -55,7 +58,12 @@ def create_app(test_config=None):
         pass
     login_manager = LoginManager()
     login_manager.init_app(app)
+
     app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
+    app.register_blueprint(films_api)
+    app.register_blueprint(directors_api)
+    app.register_blueprint(login_api)
+
     db.init_app(app)
 
 
@@ -77,7 +85,7 @@ def create_app(test_config=None):
 
 
     """ Sample endpoint  """
-    class HelloThere(Resource):
+    class Seed(Resource):
         def get(self):
             """
             @return: Hello, world!
@@ -87,23 +95,8 @@ def create_app(test_config=None):
             subprocess.run(["flask", "db", "migrate"])
             subprocess.run(["flask", "db", "upgrade"])
             subprocess.run(["flask", "seed"])
-            return 'Hello, world!', 200
+            return {"message": "Hello, World!"}, 200
 
-
-    """ Sample endpoint """
-    class Films(Resource):
-        #@login_required
-        def get(self):
-            """
-
-            @return: "app_name": "web" + films list in console
-            @rtype: json + list
-            """
-            print(os.getenv("TEST_SQLALCHEMY_DATABASE_URI"))
-            all_films = db.session.query(Film).order_by(Film.film_id).all()
-            for item in all_films:
-                print(item.film_id, item.name, item.rating, "./static/"+item.poster+".jpg")
-            return {"app_name": "web"}, 200
 
         def post(self):
             """
@@ -114,9 +107,8 @@ def create_app(test_config=None):
             return {"app_name": request.get_json()["app_name"]}, 200
 
 
-    api.add_resource(Films, "/api/web")
-    api.add_resource(HelloWorld, "/api/hello")
-    api.add_resource(HelloThere, "/api/seed")
+    api.add_resource(HelloWorld, "/")
+    api.add_resource(Seed, "/api/seed")
 
 
     def seed_from_file_decorator(function):
@@ -124,7 +116,7 @@ def create_app(test_config=None):
             result = function(*args, **kwargs)
             file = open(result[0], "r")
             data = list(csv.reader(file, delimiter=","))
-
+            file.close()
             file.close()
             is_created = result[2].query.first()
             if not is_created:
@@ -155,11 +147,11 @@ def create_app(test_config=None):
     def seed_from_file(file, table):
         if table == 'Users':
             return file, User.__table__.columns.keys(), User
-        elif table == 'Directors':
+        if table == 'Directors':
             return file, Director.__table__.columns.keys(), Director
-        elif table == 'Genres':
+        if table == 'Genres':
             return file, Genre.__table__.columns.keys(), Genre
-        elif table == 'Films':
+        if table == 'Films':
             return file, Film.__table__.columns.keys(), Film
 
 
