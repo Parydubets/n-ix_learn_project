@@ -25,7 +25,7 @@ def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__)
     api = Api(app)
-    load_dotenv()
+    load_dotenv("../../.env.dev")
     swagger_ui_blueprint = get_swaggerui_blueprint(
         os.getenv("SWAGGER_URL"),
         os.getenv("API_URL"),
@@ -45,7 +45,7 @@ def create_app(test_config=None):
         )
 
 
-    migrate = Migrate(app, db, 'web/migrations')
+    migrate = Migrate(app, db, 'project/migrations')
 
     db.init_app(app)
 
@@ -83,8 +83,7 @@ def create_app(test_config=None):
         def wrapper(*args, **kwargs):
             result = function(*args, **kwargs)
             with open(result[0], "r") as f:
-                file = f.read()
-            data = list(csv.reader(file, delimiter=","))
+                data = list(csv.reader(f, delimiter=","))
             is_created = result[2].query.first()
             if not is_created:
                 for item in data:
@@ -103,7 +102,6 @@ def create_app(test_config=None):
                         object_in = result[2](**values)
                     if 'is_admin' in result[1]:
                         object_in.is_admin = bool(values['is_admin'])
-
                     db.session.add(object_in)
                     db.session.commit()
             return result

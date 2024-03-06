@@ -6,7 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 film_genre = db.Table('film_genre',
-    db.Column('film_id', db.Integer, db.ForeignKey('web.film_id')),
+    db.Column('film_id', db.Integer, db.ForeignKey('films.film_id')),
     db.Column('genre_id', db.Integer, db.ForeignKey('genres.genre_id'))
 )
 
@@ -42,7 +42,7 @@ class User(db.Model):
 
 
 class Film(db.Model):
-    __tablename__ = "web"
+    __tablename__ = "films"
 
     film_id         = Column(Integer, primary_key=True)
     name            = Column(String, nullable=False)
