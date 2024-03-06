@@ -1,0 +1,547 @@
+openapi: 3.0.0
+info:
+  title: Films API
+  description: Simple flask video library rest api app
+  version: 0.1
+
+paths:
+
+  /:
+    get:
+      summary: Returns message hello world,
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              properties:
+                message:
+                  type: string
+              example:
+                message: Hello, World!
+
+
+  /api/v1.0/films:
+    get:
+      summary: Returns filtered/sorted films list
+      parameters:
+        - in: query
+          name: sort
+          schema:
+            type: string
+          required: false
+          description: The sort type parameter
+          examples:
+            byDate:
+              summary: sort by release date
+              value: date
+            byRating:
+              summary: sort by rating
+              value: rating
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              properties:
+                message:
+                  type: string
+              example:
+                message: Hello, World!
+    post:
+      summary: Adds a new film
+      requestBody:
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      parameters:
+        - in: query
+          name: title
+          schema:
+            type: string
+          required: true
+          example: Dune
+        - in: query
+          name: release_date
+          schema:
+            type: string
+          required: true
+          example: 2022-02-13
+        - in: query
+          name: description
+          schema:
+            type: string
+          required: false
+          example: Some description string for the film
+        - in: query
+          name: rating
+          schema:
+            type: number
+            format: binary
+          required: true
+          example: 9.0
+        - in: query
+          name: director
+          schema:
+            type: string
+          required: true
+          example: Denis Villeneuve
+        - in: query
+          name: genre
+          schema:
+            type: string
+          required: true
+          example: Action,Adventure
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              properties:
+                message:
+                  type: string
+              example:
+                message: Successfully added new film
+
+
+  /api/v1.0/films/{id}:
+    get:
+      summary: Returns a film by id,
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: The identification of film
+          example: 5
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              properties:
+                title:
+                  type: string
+                release_date:
+                  type: string
+                rating:
+                  type: number
+                genres:
+                  type: string
+                description:
+                  type: string
+                poster:
+                  type: string
+              example:
+                title: Dune
+                release_date: 2021-09-16
+                rating: 8.0
+                genres: Action,Adventure,Drama
+                description: A noble family becomes embroiled in a war for control over the galaxy's most 
+                            valuable asset while its heir becomes troubled by visions of a dark future
+                poster: /api/v1.0/posters/1_dune_poster.jpg
+    put:
+      summary: Updates a film
+      requestBody:
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: The identification of film
+          example: 5
+        - in: query
+          name: title
+          schema:
+            type: string
+          required: false
+          example: Dune
+        - in: query
+          name: release_date
+          schema:
+            type: string
+          required: false
+          example: 2022-02-13
+        - in: query
+          name: description
+          schema:
+            type: string
+          required: false
+          example: Some description string for the film
+        - in: query
+          name: rating
+          schema:
+            type: number
+            format: binary
+          required: false
+          example: 9.0
+        - in: query
+          name: director
+          schema:
+            type: string
+          required: false
+          example: Denis Villeneuve
+        - in: query
+          name: genre
+          schema:
+            type: string
+          required: false
+          example: Action,Adventure
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              properties:
+                message:
+                  type: string
+              example:
+                message: Successfully updated a film
+    delete:
+      summary: Deletes a film by id,
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: The identification of film
+          example: 5
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              properties:
+
+                title:
+                  type: string
+                release_date:
+                  type: string
+                rating:
+                  type: number
+                genres:
+                  type: string
+                description:
+                  type: string
+                poster:
+                  type: string
+              example:
+                message: succcessfully deleted the film
+                title: Dune
+                release_date: 2021-09-16
+                rating: 8.0
+                genres: Action,Adventure,Drama
+                description: A noble family becomes embroiled in a war for control over the galaxy's most
+                  valuable asset while its heir becomes troubled by visions of a dark future
+                poster: /api/v1.0/posters/1_dune_poster.jpg
+
+
+  /api/v1.0/directors:
+    get:
+      summary: Returns a list of directors
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/dir_list'
+    post:
+      summary: Adds a director
+      parameters:
+        - in: query
+          name: name
+          schema:
+            type: string
+          required: true
+          example: Denis Villeneuve
+        - in: query
+          name: date_of_birth
+          schema:
+            type: string
+          required: true
+          example: 2022-02-13
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              properties:
+                message:
+                  type: string
+              example:
+                message: Successfully added a director
+
+
+  /api/v1.0/directors/{id}:
+    get:
+      summary: Returns a director by id,
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: The director id
+          example: 5
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              properties:
+                name:
+                  type: string
+                date_of_birth:
+                  type: string
+              example:
+                name: Denis Villeneuve
+                date_of_birth: 1967-10-03
+    put:
+      summary: Updates a director
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: The director id
+          example: 5
+        - in: query
+          name: name
+          schema:
+            type: string
+          required: false
+          example: Christopher Nolan
+        - in: query
+          name: date_of_birth
+          schema:
+            type: string
+          required: false
+          example: 1970-07-30
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              properties:
+                message:
+                  type: string
+              example:
+                message: Successfully updated a director
+    delete:
+      summary: Deletes a director by id,
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: The director id
+          example: 5
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              properties:
+                name:
+                  type: string
+                date_of_birth:
+                  type: string
+              example:
+                message: Succcessfully deleted the director
+                title: Denis Villeneuve
+                release_date: 1967-10-03
+
+
+  /api/v1.0/login:
+    post:
+      summary: The login endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            properties:
+              email:
+                type: string
+              password:
+                type: string
+            example:
+              email: example@gmail.com
+              password: yuorpassword
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              properties:
+                message:
+                  type: string
+              example:
+                message: This is the endpoint for log in
+
+  /api/v1.0/logout:
+    get:
+      summary: Logout user
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              properties:
+                message:
+                  type: string
+              example:
+                message: This is the endpoint for logout
+
+  /api/v1.0/register:
+    post:
+      summary: User registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            parameters:
+              email:
+                type: string
+              password:
+                type: string
+              firs_tname:
+                type: string
+                required: false
+              middle_name:
+                type: string
+              last_name:
+                type: string
+              phone:
+                type: string
+            example:
+              email: example@gmail.com
+              password: yourpassword
+              firs_tname: Petro
+              middle_name: Petrovych
+              last_name: Petrenko
+              phone: +380667778899
+
+
+  /api/v1.0/user:
+    get:
+      summary: Returns user data
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              parameters:
+                email:
+                  type: string
+                firs_tname:
+                  type: string
+                  required: false
+                middle_name:
+                  type: string
+                last_name:
+                  type: string
+                phone:
+                  type: string
+              example:
+                email: example@gmail.com
+                firs_tname: Petro
+                middle_name: Petrovych
+                last_name: Petrenko
+                phone: +380667778899
+    post:
+      description: Changes user`s password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+            properties:
+              old_password:
+                type: string
+              new_password:
+                type: string
+              new_password_repeat:
+                type: string
+            example:
+              old_password: yuorpassword
+              new_password: newpassword
+              new_password_repeat: newpassword
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+              properties:
+                message:
+                  type: string
+              example:
+                message: Successfully changed password
+
+
+components:
+  schemas:
+    dir_list:
+      type: object
+      properties:
+        directors:            # <-------------
+          type: array
+          items:
+            $ref: '#/components/schemas/link'
+    link:
+      type: object
+      properties:
+        name:
+          type: string
+        date_of_birth:
+          type: string
+      example:
+        name: Denis Villeneuve
+        date_of_birth: 1967-10-03
