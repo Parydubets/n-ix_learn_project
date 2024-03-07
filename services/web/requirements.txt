@@ -1,12 +1,15 @@
+coveralls==3.3.1
 flask==3.0.2
 Flask-Login==0.6.3
 Flask-Migrate==4.0.5
+flask_marshmallow==1.2.0
 Flask-RESTful==0.3.10
 Flask-SQLAlchemy==3.1.1
 flask-swagger-ui==4.11.1
 gunicorn==21.2.0
+marshmallow==3.20.2
+marshmallow-sqlalchemy==1.0.0
 psycopg2-binary==2.9.9
-sqlalchemy_utils==0.41.1
-coveralls==3.3.1
 python-coveralls==2.9.3
 python-dotenv==1.0.1
+sqlalchemy_utils==0.41.1

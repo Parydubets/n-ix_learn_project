@@ -11,6 +11,6 @@ then
     echo "PostgreSQL started"
 fi
 
-flask seed
+#python manage.py seed
 
 exec "$@"

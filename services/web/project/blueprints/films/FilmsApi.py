@@ -1,20 +1,13 @@
 from flask_restful import Resource
-from flask import request
-from ...service import get_Films
+from flask import request, redirect
+from ...service import get_Films, get_Film
 
 
 class FilmsApi(Resource):
     def get(self):
-        parameters = request.args
-        try:
-            page = parameters['page']
-        except:
-            page = 1
-
-        if len(parameters) > 0:
-            return {"message": "This endpoint returns filtered/sorted films list"}, 200
-
-        return {"message": print(get_Films(page).items)}, 200
+        result = dict(**request.args)
+        result["films"] = get_Films(**request.args)
+        return result, 200
 
     def post(self):
         return {"message": "Successfully added new film"}, 200
@@ -23,7 +16,7 @@ class FilmsApi(Resource):
 class FilmApi(Resource):
     def get(self, film_id):
         if film_id:
-            return {"message": "This endpoint returns film with id={}".format(film_id)}, 200
+            return (get_Film(film_id))
 
         return {"message": "No id provided"}, 200
 
