@@ -5,8 +5,7 @@ from ...service import get_Films, get_Film
 
 class FilmsApi(Resource):
     def get(self):
-        result = dict(**request.args)
-        result["films"] = get_Films(**request.args)
+        result = get_Films(**request.args)
         return result, 200
 
     def post(self):

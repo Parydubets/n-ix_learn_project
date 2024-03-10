@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, Float, String, Date, Boolean, ForeignKey, create_engine
+from sqlalchemy import Column, Integer, Float, String, Date, Boolean, ForeignKey
 from sqlalchemy.orm import mapped_column
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
+from marshmallow import fields
 
 """
     The SQLAlchemy models
@@ -9,18 +10,13 @@ from flask_marshmallow import Marshmallow
 
 db = SQLAlchemy()
 
-film_genre = db.Table('film_genre',
-    db.Column('film_id', db.Integer, db.ForeignKey('films.film_id')),
-    db.Column('genre_id', db.Integer, db.ForeignKey('genres.genre_id'))
-)
 
-class Genre(db.Model):
-    __tablename__ = "genres"
-
-    genre_id    = db.Column(Integer, primary_key=True)
-    name        = db.Column(String, nullable=False)
-
-
+association_table = db.Table('film_genre',
+                             db.Column('film_id', db.Integer,
+                                       db.ForeignKey('films.film_id')),
+                             db.Column('genre_id', db.Integer,
+                                       db.ForeignKey('genres.genre_id'))
+                             )
 class Director(db.Model):
     __tablename__ = "directors"
 
@@ -29,6 +25,7 @@ class Director(db.Model):
     last_name       = Column(String, nullable=False)
     date_of_birth   = Column(Date, nullable=False)
     films = db.relationship('Film', backref='director')
+
 
 
 class User(db.Model):
@@ -44,7 +41,6 @@ class User(db.Model):
     is_admin    = Column(Boolean, nullable=False)
     films = db.relationship('Film', backref='user')
 
-
 class Film(db.Model):
     __tablename__ = "films"
 
@@ -56,9 +52,14 @@ class Film(db.Model):
     poster          = Column(String, nullable=False)
     users_user_id   = mapped_column(ForeignKey("users.user_id"))
     directors_director_id   = mapped_column(ForeignKey("directors.director_id"))
-    genres = db.relationship("Genre", secondary=film_genre)
+    genres = db.relationship(
+        "Genre", secondary=association_table, backref=db.backref('films'))
 
+class Genre(db.Model):
+    __tablename__ = "genres"
 
+    genre_id    = Column(Integer, primary_key=True)
+    name        = Column(String, nullable=False)
 """
     The Marshmallow schemas
 """
@@ -79,6 +80,12 @@ class GenresSchema(ma.SQLAlchemyAutoSchema):
         model = Genre
 
 
+class GenresName(fields.Field):
+    def _serialize(self, value, attr, obj, **kwargs):
+        if value is None:
+            return ''
+        return value.name
+
 class DirectorsSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Director
@@ -93,8 +100,16 @@ class FilmsSchema(ma.SQLAlchemyAutoSchema):
         model = Film
         include_fk = True
 
+    film_id = fields.Int()
+    name = fields.Str()
+    release_date = fields.Str()
+    description = fields.Str()
+    rating = fields.Float()
+    poster = fields.Str()
+    genres = fields.Pluck("self", "name", many=True)
     user = ma.Nested(UsersSmallSchema)
     director = ma.Nested(DirectorsSmallSchema)
+    #ingredients = fields.List(IngredientName(), exclude=('recipes',), many=True)
 
 
 film = FilmsSchema(exclude=("users_user_id", "directors_director_id"))
