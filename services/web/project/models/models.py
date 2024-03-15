@@ -13,14 +13,14 @@ db = SQLAlchemy()
 
 association_table = db.Table('film_genre',
                              db.Column('film_id', db.Integer,
-                                       db.ForeignKey('films.film_id')),
+                                       db.ForeignKey('films.id')),
                              db.Column('genre_id', db.Integer,
-                                       db.ForeignKey('genres.genre_id'))
+                                       db.ForeignKey('genres.id'))
                              )
 class Director(db.Model):
     __tablename__ = "directors"
 
-    director_id     = Column(Integer, primary_key=True)
+    id     = Column(Integer, primary_key=True)
     first_name      = Column(String, nullable=False)
     last_name       = Column(String, nullable=False)
     date_of_birth   = Column(Date, nullable=False)
@@ -31,7 +31,7 @@ class Director(db.Model):
 class User(db.Model):
     __tablename__ = "users"
 
-    user_id     = Column(Integer, primary_key=True)
+    id     = Column(Integer, primary_key=True)
     first_name  = Column(String, nullable=False)
     last_name   = Column(String, nullable=False)
     middle_name = Column(String, nullable=False)
@@ -44,21 +44,21 @@ class User(db.Model):
 class Film(db.Model):
     __tablename__ = "films"
 
-    film_id         = Column(Integer, primary_key=True)
+    id         = Column(Integer, primary_key=True)
     name            = Column(String, nullable=False)
     release_date    = Column(Date, nullable=False)
     description     = Column(String, nullable=True)
     rating          = Column(Float, nullable=False)
     poster          = Column(String, nullable=False)
-    users_user_id   = mapped_column(ForeignKey("users.user_id"))
-    directors_director_id   = mapped_column(ForeignKey("directors.director_id"))
+    user_id   = mapped_column(ForeignKey("users.id"))
+    director_id   = mapped_column(ForeignKey("directors.id"))
     genres = db.relationship(
-        "Genre", secondary=association_table, backref=db.backref('films'))
+        "Genre", secondary=association_table, backref=db.backref('films'), cascade='save-update')
 
 class Genre(db.Model):
     __tablename__ = "genres"
 
-    genre_id    = Column(Integer, primary_key=True)
+    id    = Column(Integer, primary_key=True)
     name        = Column(String, nullable=False)
 """
     The Marshmallow schemas
@@ -73,18 +73,14 @@ class UsersSchema(ma.SQLAlchemyAutoSchema):
 class UsersSmallSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User
-        fields = ("user_id", "first_name", "last_name")
+        fields = ("id", "first_name", "last_name")
 
 class GenresSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Genre
 
-
-class GenresName(fields.Field):
-    def _serialize(self, value, attr, obj, **kwargs):
-        if value is None:
-            return ''
-        return value.name
+class GenresSmallSchema(ma.SQLAlchemyAutoSchema):
+    name = fields.Pluck(GenresSchema, 'name', many=True)
 
 class DirectorsSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -109,11 +105,13 @@ class FilmsSchema(ma.SQLAlchemyAutoSchema):
     genres = fields.Pluck("self", "name", many=True)
     user = ma.Nested(UsersSmallSchema)
     director = ma.Nested(DirectorsSmallSchema)
-    #ingredients = fields.List(IngredientName(), exclude=('recipes',), many=True)
 
 
-film = FilmsSchema(exclude=("users_user_id", "directors_director_id"))
-films = FilmsSchema(many=True, exclude=("users_user_id", "directors_director_id"))
+film = FilmsSchema(exclude=("user_id", "director_id"))
+films = FilmsSchema(many=True, exclude=("user_id", "director_id"))
 
 director = DirectorsSchema()
 directors = DirectorsSchema(many=True)
+
+genre = GenresSchema()
+genres = GenresSmallSchema(many=True)

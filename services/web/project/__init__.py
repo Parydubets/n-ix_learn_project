@@ -1,6 +1,7 @@
 """ The project init """
 import os
-from flask import Flask
+from flask import Flask, send_from_directory, request
+from werkzeug.utils import secure_filename
 from flask_swagger_ui import get_swaggerui_blueprint
 from flask_restful import Resource, Api
 from flask_migrate import Migrate
@@ -9,8 +10,9 @@ from .models import db, User, Film, Director, Genre
 from .blueprints.films import films_api
 from .blueprints.directors import directors_api
 from .blueprints.login import login_api
-from flask_sqlalchemy import SQLAlchemy
+from .blueprints.genres import genres_api
 from flask_marshmallow import Marshmallow
+from .config import Config, Config_Test
 
 
 def create_app(test_config=None):
@@ -23,7 +25,7 @@ def create_app(test_config=None):
     @rtype:
     """
     # create and configure the app
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder='static')
     api = Api(app)
 
     load_dotenv("../../.env.dev")
@@ -34,17 +36,11 @@ def create_app(test_config=None):
             'app_name': 'Access API'
         }
     )
-    if test_config is None:
-        app.config.from_mapping(
-            SECRET_KEY=os.getenv("SECRET_KEY"),
-            SQLALCHEMY_DATABASE_URI=os.getenv("SQLALCHEMY_DATABASE_URI")
-        )
-    else:
-        app.config.from_mapping(
-            SECRET_KEY=os.getenv("SECRET_KEY"),
-            SQLALCHEMY_DATABASE_URI=os.getenv("TEST_SQLALCHEMY_DATABASE_URI")
-        )
 
+    if test_config is None:
+        app.config.from_object(Config)
+    else:
+        app.config.from_object(Config_Test)
 
     migrate = Migrate(app, db, 'project/migrations')
 
@@ -67,8 +63,6 @@ def create_app(test_config=None):
             film_schema = FilmSchema()
             films_schema = FilmSchema(many=True)
             result = Film.query.paginate(page=int(1), per_page=10)
-            #result = Film.query.first()
-            print(films_schema.dump(result))
             return 'SQLALCHEMY_DATABASE_URI:   '+str(os.getenv("SQLALCHEMY_DATABASE_URI")), 200
 
 
@@ -76,7 +70,31 @@ def create_app(test_config=None):
     app.register_blueprint(films_api)
     app.register_blueprint(directors_api)
     app.register_blueprint(login_api)
+    app.register_blueprint(genres_api)
     api.add_resource(HelloWorld, "/")
 
+    # Get Image file Routing
+    @app.route("/get-image/<path:image_name>", methods=['GET', 'POST'])
+    def get_image(image_name):
+
+        try:
+            return send_from_directory(directory="static", path=image_name, as_attachment=True), 200
+
+        except FileNotFoundError:
+           return 404
+
+    @app.route("/upload", methods=["GET", "POST"])
+    def upload_file():
+        if request.method == "POST":
+            file = request.files["file"]
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config["MEDIA_FOLDER"], filename))
+        return """
+        <!doctype html>
+        <title>upload new File</title>
+        <form action="" method=post enctype=multipart/form-data>
+          <p><input type=file name=file><input type=submit value=Upload>
+        </form>
+        """
 
     return app

@@ -11,7 +11,7 @@ cli = FlaskGroup(app)
 @cli.command("create_db")
 def create_db():
     """ create db  """
-    with current_app.app_context():
+    with app.app_context():
         db.drop_all()
         db.create_all()
         db.session.commit()
