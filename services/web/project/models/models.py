@@ -10,7 +10,6 @@ from marshmallow import fields
 
 db = SQLAlchemy()
 
-
 association_table = db.Table('film_genre',
                              db.Column('film_id', db.Integer,
                                        db.ForeignKey('films.id')),
@@ -51,7 +50,9 @@ class Film(db.Model):
     rating          = Column(Float, nullable=False)
     poster          = Column(String, nullable=False)
     user_id   = mapped_column(ForeignKey("users.id"))
-    director_id   = mapped_column(ForeignKey("directors.id"))
+    director_id   = db.Column(db.Integer, db.ForeignKey('directors.id'),
+        nullable=True)
+    #director_id   = mapped_column(String, ForeignKey("directors.id", ondelete='SET DEFAULT'), server_default="unknown")
     genres = db.relationship(
         "Genre", secondary=association_table, backref=db.backref('films'), cascade='save-update')
 
@@ -103,8 +104,8 @@ class FilmsSchema(ma.SQLAlchemyAutoSchema):
     rating = fields.Float()
     poster = fields.Str()
     genres = fields.Pluck("self", "name", many=True)
-    user = ma.Nested(UsersSmallSchema)
-    director = ma.Nested(DirectorsSmallSchema)
+    user = ma.Nested(UsersSmallSchema(only=("id", "first_name", "last_name",)))
+    director = fields.Nested(DirectorsSchema(only=("first_name", "last_name",)))
 
 
 film = FilmsSchema(exclude=("user_id", "director_id"))

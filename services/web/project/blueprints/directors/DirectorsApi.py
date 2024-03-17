@@ -1,6 +1,6 @@
 from flask_restful import Resource
 from flask import request, redirect
-from ...service import get_Directors, get_Director
+from ...service import get_Directors, get_Director, create_director, update_director, delete_director
 
 
 class DirectorsApi(Resource):
@@ -12,7 +12,7 @@ class DirectorsApi(Resource):
         return get_Directors(page), 200
 
     def post(self):
-        return {"message": "This endpoint adds a new director"}, 200
+        return create_director(**request.args), 200
 
 
 
@@ -21,9 +21,8 @@ class DirectorApi(Resource):
         if id:
             return (get_Director(id))
 
-        return {"message": "No id provided"}, 200
     def put(self, id):
-        return {"message": "This endpoint updates a director with id={}".format(director_id)}, 200
+        return update_director(id, **request.args), 200
 
     def delete(self, id):
-        return {"message": "This endpoint deletes a director with id={}".format(director_id)}, 200
+        return delete_director(id), 200

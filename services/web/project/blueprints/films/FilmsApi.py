@@ -1,5 +1,5 @@
 from flask_restful import Resource
-from flask import request, current_app, send_from_directory, jsonify
+from flask import request, send_from_directory
 from ...service import check_film_fileds, get_films, get_film_img, add_film, update_film, get_film, delete_film
 from werkzeug.utils import secure_filename
 import os
@@ -17,21 +17,14 @@ class FilmsApi(Resource):
             film_dict["poster"]=filename
         except:
             return {"error": "no poster file attached"}
-        if len(film_dict)<7 or 6>len(film_dict)>8:
-            return {"error": "not all necessary parameters provided"}
-        error = check_film_fileds(**film_dict)
-        if len(error)>0:
-            return {"error: ": error}
         else:
             file.save(os.path.join("project/static/", filename))
-            return {"added film":add_film(**film_dict)}
+            return add_film(**film_dict)
 
 
 class FilmApi(Resource):
     def get(self, id):
-        if id:
-            return (get_film(id))
-        return {"message": "No id provided"}, 200
+        return (get_film(id))
 
     def put(self, id):
         film_dict={**request.args}
@@ -46,9 +39,7 @@ class FilmApi(Resource):
         if len(error) > 0:
             return {"errors: ": error}
         else:
-            #file.save(os.path.join("project/static/", filename))
-            return {"updated film": update_film(id, **film_dict)}
-        return {"message": "This endpoint updates a film with id={}".format(id)}, 200
+            return  update_film(id, **film_dict)
 
     def delete(self, id):
         return delete_film(id), 200

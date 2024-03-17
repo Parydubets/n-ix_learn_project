@@ -1,3 +1,6 @@
+"""
+    The module with buisiness logic
+"""
 from ..models import *
 from sqlalchemy import desc
 from math import ceil
@@ -5,8 +8,13 @@ from flask import send_from_directory, current_app
 import os
 from re import match, search
 
-kwargs_pool = ["name", "release_date", "description", "rating", "poster",
+film_kwargs_pool = ["name", "release_date", "description", "rating", "poster",
                    "user_id", "genres", "director"]
+director_kwargs_pool = ["first_name", "last_name", "date_of_birth"]
+
+def get_last_id(model):
+    return db.session.query(model).order_by(model.id.desc()).first().id
+
 
 def get_item_with_id(item, id):
     try:
@@ -19,36 +27,47 @@ def get_item_with_id(item, id):
         return None
 
 
-def delete_item_with_id(item, id):
-    item = item.query.filter_by(id=id).first()
-    db.session.delete(item)
-    db.session.commit()
-    return item
-
-
-def check_or_add_director(director_name):
-    first_name, last_name = director_name.split(" ")
-    if Director.query.where(Director.first_name == first_name).where(Director.last_name == last_name).first() is None:
-        id = db.session.query(Director).order_by(Director.id.desc()).first().id
-        director = Director(id=id+1,first_name=first_name, last_name=last_name, date_of_birth="2020-03-03")
-        db.session.add(director)
+def delete_item_with_id(serialize, type, id):
+    item = get_item_with_id(type, id)
+    print(item)
+    print(serialize.dump(item))
+    if item is None:
+        return {"error": "No items with this id"}
+    try:
+        db.session.delete(item)
         db.session.commit()
-    director = Director.query.where(Director.first_name == first_name).where(Director.last_name == last_name).first()
+        item = serialize.dump(item)
+        print(item)
+        return {"deleted": item}
+    except:
+        return {"error": "something went wrong"}
+
+
+
+
+def check_director(director_name):
+    first_name, last_name = director_name.split(" ")
+    if Director.query.where(Director.first_name == first_name).\
+            where(Director.last_name == last_name).first() is None:
+        return {"error": "add director first"}
+    director = Director.query.where(Director.first_name == first_name).\
+        where(Director.last_name == last_name).first()
     return director
 
 
 def check_film_fileds(**kwargs):
     errors = []
     for arg in kwargs:
-        if arg not in kwargs_pool:
+        if arg not in film_kwargs_pool:
             errors.append("Unknown film parameter <{}>".format(arg))
     keys = kwargs.keys()
     if "name" in keys and (len(kwargs["name"])>100 or len(kwargs["name"])<1):
         errors.append("Movie name lenght must be between 1 and 100 characters")
     if "poster" in keys and (search("([A-Za-z0-9])+(\.jpg|\.png)", kwargs["poster"]) is None):
         errors.append("Not a valid filename for poster")
-    if "release_date" in keys and (search("[1-2][0-9]{3}-[0-1][0-9]-[0-3][0-9]", kwargs["release_date"]) is None):
-        errors.append("Valid date format is yyyy-mm-dd")
+    if "release_date" in keys:
+        if (search("[1-2][0-9]{3}-[0-1][0-9]-[0-3][0-9]", kwargs["release_date"]) is None):
+            errors.append("Valid date format is yyyy-mm-dd")
     if "description" in keys:
         if len(kwargs["description"]) > 1000 or len(kwargs["description"]) < 10:
             errors.append("Movie description lenght must be between 10 and 1000 characters")
@@ -68,6 +87,21 @@ def check_film_fileds(**kwargs):
     return errors
 
 
+def check_director_fileds(**kwargs):
+    errors = []
+    keys = kwargs.keys()
+    for arg in kwargs:
+        if arg not in director_kwargs_pool:
+            errors.append("Unknown film parameter <{}>".format(arg))
+    if "first_name" in keys and (len(kwargs["first_name"])>50 or len(kwargs["first_name"])<1):
+        errors.append("Director`s name lenght must be between 1 and 50 characters")
+    if "last_name" in keys and (len(kwargs["last_name"])>50 or len(kwargs["last_name"])<1):
+        errors.append("Director`s name lenght must be between 1 and 50 characters")
+    if "date_of_birth" in keys:
+        if (search("[1-2][0-9]{3}-[0-1][0-9]-[0-3][0-9]", kwargs["date_of_birth"]) is None):
+            errors.append("Valid date format is yyyy-mm-dd")
+    return errors
+
 def paginate_films(query, **kwargs):
     if "page" in kwargs:
         kwargs["page"] = int(kwargs["page"])
@@ -77,7 +111,7 @@ def paginate_films(query, **kwargs):
         kwargs["limit"] = int(kwargs["limit"])
     else:
         kwargs["limit"] = 10
-    # pagination
+
     results = query.count()
     if results > kwargs["limit"]:
         query = query.paginate(page=kwargs["page"], per_page=kwargs["limit"])
@@ -132,6 +166,9 @@ def filter_films(query, **kwargs):
 
 def get_result(query, **kwargs):
     query = films.dump(list(query))
+    for item in query:
+        if item["director"] is None:
+            item["director"] = "Unknown"
     result = dict(**kwargs)
     result["films"] = query
     return result
@@ -147,10 +184,8 @@ def get_films(**kwargs):
     #sorting
     query = sort_films(base_query, **kwargs)
 
-
     #filtering
     query = filter_films(query, **kwargs)
-
 
     #pagination kwargs
     query, kwargs = paginate_films(query, **kwargs)
@@ -173,10 +208,19 @@ def get_film_img(id):
 
 
 def add_film(**kwargs):
-    director = check_or_add_director(kwargs["director"])
+    errors = check_film_fileds(**kwargs)
+    if "description" not in kwargs:
+        kwargs["description"] = ""
+    if len(errors) > 0:
+        return {"errors": errors}
+    if len(kwargs) != 8:
+        return {"errors": "check parameters again"}
+    director = check_director(kwargs["director"])
+    if type(director) == type({}):
+        return director
     user = get_item_with_id(User, kwargs["user_id"])
-    genres = [Genre.query.where(Genre.name == item.lower()).first() for item in kwargs["genres"].split(",")]
-    id = db.session.query(Film).order_by(Film.id.desc()).first().id
+    genres = get_genres_list(kwargs["genres"])
+    id = get_last_id(Film)
     obj = {
         "id": id+1,
         "name": kwargs["name"],
@@ -191,46 +235,41 @@ def add_film(**kwargs):
     obj.genres.extend(genres)
     db.session.add(obj)
     db.session.commit()
-    return film.dump(obj)
+    return {"film": film.dump(obj)}
 
 
 def update_film(id, **kwargs):
     errors = check_film_fileds(**kwargs)
     if len(errors) > 0:
-        return errors
+        return {"errors": errors}
     keys = kwargs.keys()
     if "director" in keys:
-        director = check_or_add_director(kwargs["director"])
-        kwargs["director_id"] = director.id
-        del kwargs["director"]
+        director = check_director(kwargs["director"])
+        if type(director) == type({}):
+            return director
+        kwargs["director"] = director
+    print(kwargs)
     movie = get_item_with_id(Film, id)
+    if movie is None:
+        return {"error": "No items with this id"}
     if "genres" in keys:
-        genres = [Genre.query.where(Genre.name == item.lower()).first() for item in kwargs["genres"].split(",")]
+        genres = get_genres_list(kwargs["genres"])
         movie.genres = genres
         del kwargs["genres"]
     for item in keys:
-        if item in kwargs_pool:
+        if item in film_kwargs_pool:
             setattr(movie, item, kwargs[item])
     db.session.commit()
-    return (film.dump(movie))
+    return {"film": film.dump(movie)}
+
 
 def delete_film(id):
-    item = get_item_with_id(Film, id)
-    if item is None:
-        return {"error": "No items with whis id"}
-    item = film.dump(item)
-    try:
-        delete_item_with_id(Film, id)
-        return {"deleted":item}
-    except:
-        return {"error": "something went wrong"}
-
-
+    return delete_item_with_id(film, Film, id)
 
 
 def get_Directors(page, limit=10):
     results = Director.query.count()
-    result = Director.query.paginate(page=int(page), per_page=limit)
+    result = Director.query.order_by(Director.id).paginate(page=int(page), per_page=limit)
     return {"pages":ceil(results/limit), "page":page, "directors":directors.dump(result)}
 
 
@@ -239,7 +278,48 @@ def get_Director(id):
     return result
 
 
+def create_director(**kwargs):
+    errors = check_director_fileds(**kwargs)
+    if len(errors)>0:
+        return {"errors": errors}
+    id = get_last_id(Director)
+    obj = {
+        "id": id+1,
+        "first_name": kwargs["first_name"],
+        "last_name": kwargs["last_name"],
+        "date_of_birth": kwargs["date_of_birth"]
+    }
+    obj = Director(**obj)
+    db.session.add(obj)
+    db.session.commit()
+    return {"director": director.dump(obj)}
+
+
+def update_director(id, **kwargs):
+    director_update = get_item_with_id(Director, id)
+    if director_update is None:
+        return {"error": "No items with this id"}
+    errors = check_director_fileds(**kwargs)
+    if len(errors) > 0:
+        return {"errors": errors}
+
+    keys = kwargs.keys()
+    for item in keys:
+        setattr(director_update, item, kwargs[item])
+    db.session.commit()
+    return {"updated dicrector": director.dump(director_update)}
+
+
+def delete_director(id):
+    return delete_item_with_id(director, Director, id)
+
+
 def get_genres():
     result = Genre.query.all()
     genres = [genre.name for genre in result]
     return genres
+
+
+def get_genres_list(genres):
+    return [Genre.query.where(Genre.name == item.lower()).first()
+            for item in genres.split(",")]
