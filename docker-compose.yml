@@ -46,7 +46,6 @@ services:
       - "${PGADMIN_PORT:-5050}:80"
     restart: unless-stopped
 
-
 networks:
   postgres:
     driver: bridge

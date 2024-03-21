@@ -1,28 +1,35 @@
 from flask_restful import Resource
-from flask import request, redirect
-from ...service import get_Directors, get_Director, create_director, update_director, delete_director
+from flask import request, redirect, current_app
+from ...service import get_directors, get_director, create_director, update_director, delete_director
 
 
 class DirectorsApi(Resource):
     def get(self):
+        current_app.logger.info("Getting directors")
         try:
             page = request.args['page']
         except:
             return redirect("/api/v1.0/directors?page=1")
-        return get_Directors(page), 200
+        current_app.logger.info("Page: {}".format(page))
+        return get_directors(page), 200
 
     def post(self):
+        current_app.logger.info("Adding new director")
+        current_app.logger.info("args: {}".format(request.args))
         return create_director(**request.args), 200
 
 
 
 class DirectorApi(Resource):
     def get(self, id):
-        if id:
-            return (get_Director(id))
+        current_app.logger.info("Getting director with id={}".format(id))
+        return (get_director(id))
 
     def put(self, id):
+        current_app.logger.info("Updating director with id={}".format.id)
+        current_app.logger.info("args: {}".format(request.args))
         return update_director(id, **request.args), 200
 
     def delete(self, id):
+        current_app.logger.info("Deleting director with id={}".format.id)
         return delete_director(id), 200

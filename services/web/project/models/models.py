@@ -1,14 +1,17 @@
 from sqlalchemy import Column, Integer, Float, String, Date, Boolean, ForeignKey
 from sqlalchemy.orm import mapped_column
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.ext.hybrid import hybrid_property
 from flask_marshmallow import Marshmallow
 from marshmallow import fields
+from flask_bcrypt import Bcrypt
 
 """
     The SQLAlchemy models
 """
 
 db = SQLAlchemy()
+bcrypt = Bcrypt()
 
 association_table = db.Table('film_genre',
                              db.Column('film_id', db.Integer,
@@ -30,15 +33,28 @@ class Director(db.Model):
 class User(db.Model):
     __tablename__ = "users"
 
-    id     = Column(Integer, primary_key=True)
-    first_name  = Column(String, nullable=False)
-    last_name   = Column(String, nullable=False)
-    middle_name = Column(String, nullable=False)
-    email       = Column(String, nullable=False)
-    password    = Column(String, nullable=False)
-    phone       = Column(String, nullable=False)
-    is_admin    = Column(Boolean, nullable=False)
+    id = Column(Integer, primary_key=True)
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    password = Column(String, nullable=False)
+    is_admin = Column(Boolean, nullable=False)
     films = db.relationship('Film', backref='user')
+
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return str(self.id)
 
 class Film(db.Model):
     __tablename__ = "films"
@@ -70,6 +86,7 @@ ma = Marshmallow()
 class UsersSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User
+        fields = ("id","first_name", "last_name", "email")
 
 class UsersSmallSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -116,3 +133,6 @@ directors = DirectorsSchema(many=True)
 
 genre = GenresSchema()
 genres = GenresSmallSchema(many=True)
+
+user = UsersSchema()
+users = UsersSchema(many=True)
