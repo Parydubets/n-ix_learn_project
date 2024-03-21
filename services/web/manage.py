@@ -39,6 +39,10 @@ def seed_from_file_decorator(function):
                     object_in = result[2](**values)
                 if 'is_admin' in result[1]:
                     object_in.is_admin = bool(values['is_admin'])
+                if 'is_active' in result[1]:
+                    object_in.is_active = False
+                if 'is_authenticated' in result[1]:
+                    object_in.is_authenticated = False
                 db.session.add(object_in)
                 db.session.commit()
         return result
@@ -48,13 +52,21 @@ def seed_from_file_decorator(function):
 @seed_from_file_decorator
 def seed_from_file(file, table):
     if table == 'Users':
-        return file, User.__table__.columns.keys(), User
+        keys = User.__table__.columns.keys()
+        del keys[0]
+        return file, keys, User
     if table == 'Directors':
-        return file, Director.__table__.columns.keys(), Director
+        keys = Director.__table__.columns.keys()
+        del keys[0]
+        return file, keys, Director
     if table == 'Genres':
-        return file, Genre.__table__.columns.keys(), Genre
+        keys = Genre.__table__.columns.keys()
+        del keys[0]
+        return file, keys, Genre
     if table == 'Films':
-        return file, Film.__table__.columns.keys(), Film
+        keys = Film.__table__.columns.keys()
+        del keys[0]
+        return file, keys, Film
 
 
 @cli.command("seed")

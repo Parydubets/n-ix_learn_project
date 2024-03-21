@@ -1,9 +1,11 @@
 """ The project init """
 import os
-from flask import Flask, send_from_directory, request
-from werkzeug.utils import secure_filename
+import logging
+from logging.handlers import RotatingFileHandler
+from flask import Flask
+from flask import has_request_context, request
 from flask_swagger_ui import get_swaggerui_blueprint
-from flask_restful import Resource, Api
+from flask_restful import Api
 from flask_migrate import Migrate
 from dotenv import load_dotenv
 from .models import db, User, Film, Director, Genre
@@ -13,7 +15,9 @@ from .blueprints.login import login_api
 from .blueprints.genres import genres_api
 from flask_marshmallow import Marshmallow
 from .config import Config, Config_Test
+from flask_login import LoginManager
 
+login_manager = LoginManager()
 
 def create_app(test_config=None):
     """
@@ -26,6 +30,7 @@ def create_app(test_config=None):
     """
     # create and configure the app
     app = Flask(__name__, static_folder='static')
+    print(__name__)
     api = Api(app)
 
     load_dotenv("../../.env.dev")
@@ -43,27 +48,36 @@ def create_app(test_config=None):
         app.config.from_object(Config_Test)
 
     migrate = Migrate(app, db, 'project/migrations')
-
     db.init_app(app)
+    login_manager.init_app(app)
     ma = Marshmallow()
     ma.init_app(app)
 
-    class HelloWorld(Resource):
-        def get(self):
-            """
-            @return: Hello world, <SQLALCHEMY_DATABASE_URI>
-            @rtype: String
-            """
+    class RequestFormatter(logging.Formatter):
+        def format(self, record):
+            if has_request_context():
+                record.url = request.url
+                record.remote_addr = request.remote_addr
+                record.method = request.method
+            else:
+                record.url = None
+                record.remote_addr = None
 
-            class FilmSchema(ma.SQLAlchemyAutoSchema):
-                class Meta:
-                    model = Film
-                    include_fk = True
+            return super().format(record)
+    handler = logging.handlers.RotatingFileHandler('app.log', maxBytes=1024 * 1024)
+    formatter = RequestFormatter(
+        '[%(asctime)s] %(remote_addr)s  requested %(method)s %(url)s\n'
+        '%(levelname)s in %(module)s: %(message)s'
+    )
+    handler.setFormatter(formatter)
+    logger = logging.getLogger('werkzeug')
+    logger.setLevel(logging.INFO)
 
-            film_schema = FilmSchema()
-            films_schema = FilmSchema(many=True)
-            result = Film.query.paginate(page=int(1), per_page=10)
-            return 'SQLALCHEMY_DATABASE_URI:   '+str(os.getenv("SQLALCHEMY_DATABASE_URI")), 200
+    app.logger.addHandler(handler)
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
 
 
     app.register_blueprint(swagger_ui_blueprint, url_prefix=os.getenv("SWAGGER_URL"))
@@ -71,30 +85,11 @@ def create_app(test_config=None):
     app.register_blueprint(directors_api)
     app.register_blueprint(login_api)
     app.register_blueprint(genres_api)
-    api.add_resource(HelloWorld, "/")
-
-    # Get Image file Routing
-    @app.route("/get-image/<path:image_name>", methods=['GET', 'POST'])
-    def get_image(image_name):
-
-        try:
-            return send_from_directory(directory="static", path=image_name, as_attachment=True), 200
-
-        except FileNotFoundError:
-           return 404
-
-    @app.route("/upload", methods=["GET", "POST"])
-    def upload_file():
-        if request.method == "POST":
-            file = request.files["file"]
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config["MEDIA_FOLDER"], filename))
-        return """
-        <!doctype html>
-        <title>upload new File</title>
-        <form action="" method=post enctype=multipart/form-data>
-          <p><input type=file name=file><input type=submit value=Upload>
-        </form>
-        """
 
     return app
+
+
+"""    @login_manager.unauthorized_handler
+    def unauthorized():
+        # do stuff
+        return {"message":"login first"}"""
