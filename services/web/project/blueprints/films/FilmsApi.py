@@ -2,7 +2,7 @@ from flask_restful import Resource
 from flask_login import login_required
 from flask import request, send_from_directory, current_app
 from ...service import check_film_fileds, get_films, get_film_img, add_film,\
-                        update_film, get_film, delete_film, check_author
+                        update_film, get_film, delete_film
 from werkzeug.utils import secure_filename
 import os
 from ...models import users

@@ -2,25 +2,32 @@ import logging
 from flask_restful import Resource
 from flask import request, current_app
 from ...service import get_user_data, set_user_password
-from ...models import db, User
+from ...models import db, User, users
 from flask_login import login_user, logout_user, current_user,login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 
 logger = logging.getLogger('app.project.my_tool')
 
 class LoginApi(Resource):
+    def get(self):
+        usrs = User.query.all()
+        return users.dump(usrs)
     def post(self):
         email = request.form.get('email')
         password = request.form.get('password')
         remember = True if request.form.get('remember') else False
-        current_app.logger.info("Logging in user with email={}".format(email))
         user = User.query.filter_by(email=email).first()
-
+        user = User.query.filter_by(id=101).first()
+        print(email, user)
+        print(email, user.email)
+        current_app.logger.info("Logging in user with email=[{}] user = {}".format(email, user))
+        current_app.logger.info("pass in {} pass db {}, {}, generated: {}".format(user.password, password, check_password_hash(user.password, password), generate_password_hash(password)))
         if not user or not check_password_hash(user.password, password):
             current_app.logger.warning("Wrong credentials")
-            return {"message": "wrong credentials."}  # if the user doesn't exist or password is wrong, reload the page
+            return {"message": "wrong credentials."}, 401  # if the user doesn't exist or password is wrong, reload the page
 
         login_user(user, remember=remember)
+        current_app.logger.warning("successfully logged")
         return {"message": "successfully logged"}, 200
 
 
@@ -31,7 +38,8 @@ class RegisterApi(Resource):
         password= request.form.get('password')
         first_name= request.form.get('first_name')
         last_name= request.form.get('last_name')
-        is_admin= True
+        phone = request.form.get('phone')
+        is_admin= False
 
 
         user = User.query.filter_by(email=email).first()
@@ -40,8 +48,8 @@ class RegisterApi(Resource):
             current_app.logger.warning("User already exists")
             return {"message": "user already exists"}
 
-        new_user = User(email=email, password=generate_password_hash(password, method='scrypt'),
-                        first_name=first_name, last_name=last_name, is_admin=is_admin)
+        new_user = User(email=email, password=generate_password_hash(password),
+                        first_name=first_name, last_name=last_name, phone=phone, is_admin=is_admin)
 
         db.session.add(new_user)
         db.session.commit()

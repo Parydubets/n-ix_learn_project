@@ -196,9 +196,9 @@ def filter_films(query, **kwargs):
 
 
 def get_result(query, **kwargs):
-    current_app.logger.warning(query)
+    #current_app.logger.warning(query)
     query = films.dump(list(query))
-    current_app.logger.warning(query)
+    #current_app.logger.warning(query)
     for item in query:
         if item["director"] is None:
             item["director"] = "Unknown"

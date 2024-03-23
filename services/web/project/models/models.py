@@ -38,6 +38,7 @@ class User(db.Model):
     last_name = Column(String, nullable=False)
     email = Column(String, nullable=False)
     password = Column(String, nullable=False)
+    phone = Column(String, nullable=False)
     is_admin = Column(Boolean, nullable=False)
     films = db.relationship('Film', backref='user')
 
@@ -86,7 +87,6 @@ ma = Marshmallow()
 class UsersSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User
-        fields = ("id","first_name", "last_name", "email")
 
 class UsersSmallSchema(ma.SQLAlchemyAutoSchema):
     class Meta:

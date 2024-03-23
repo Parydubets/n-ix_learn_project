@@ -87,6 +87,7 @@ def create_app(test_config=None):
         return User.query.get(int(user_id))
 
 
+
     app.register_blueprint(swagger_ui_blueprint, url_prefix=os.getenv("SWAGGER_URL"))
     app.register_blueprint(films_api)
     app.register_blueprint(directors_api)

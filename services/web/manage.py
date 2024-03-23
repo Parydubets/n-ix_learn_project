@@ -83,6 +83,5 @@ def seed():
         seed_from_file("./project/static/seed/genres_mock.csv", 'Genres')
         seed_from_file("./project/static/seed/films_mock.csv", 'Films')
 
-
 if __name__ == "__main__":
     cli()
