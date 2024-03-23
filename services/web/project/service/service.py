@@ -40,8 +40,6 @@ def get_item_with_filter(data, type, filter):
 
 def delete_item_with_id(serialize, type, id):
     item = get_item_with_id(type, id)
-    print(item)
-    print(serialize.dump(item))
     if item is None:
         current_app.logger.warning("No items with id={}".format(id))
         return {"error": "No items with this id"}, 400
@@ -49,7 +47,6 @@ def delete_item_with_id(serialize, type, id):
         db.session.delete(item)
         db.session.commit()
         item = serialize.dump(item)
-        print(item)
         return {"deleted": item}
     except:
         current_app.logger.warning("Something went wrong")
@@ -57,7 +54,6 @@ def delete_item_with_id(serialize, type, id):
 
 
 def check_author(user):
-    print(user.id, current_user.id, current_user.is_admin)
     if user.id == current_user.id or current_user.is_admin is True:
         return True
     return False
@@ -298,7 +294,6 @@ def update_film(id, **kwargs):
         if isinstance(director, str):
             errors.append(director)
         kwargs["director"] = director
-    print(kwargs)
     movie = get_item_with_id(Film, id)
     check_author(movie.user)
 
