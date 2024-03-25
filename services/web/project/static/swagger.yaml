@@ -56,10 +56,16 @@ paths:
       summary: Adds a new film
       requestBody:
         content:
-          image/png:
+          multipart/form-data:
             schema:
-              type: string
-              format: binary
+              type: object
+              properties:
+                poster:
+                  type: string
+                  format: base64
+            encoding:
+              profileImage:
+                contentType: image/png, image/jpeg
       parameters:
         - in: query
           name: title

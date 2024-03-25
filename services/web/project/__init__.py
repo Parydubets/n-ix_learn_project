@@ -1,17 +1,23 @@
 """ The project init """
 import os
-import csv
-import subprocess
+import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask
+from flask import has_request_context, request
 from flask_swagger_ui import get_swaggerui_blueprint
-from flask_restful import Resource, Api
+from flask_restful import Api
 from flask_migrate import Migrate
 from dotenv import load_dotenv
 from .models import db, User, Film, Director, Genre
 from .blueprints.films import films_api
 from .blueprints.directors import directors_api
 from .blueprints.login import login_api
+from .blueprints.genres import genres_api
+from flask_marshmallow import Marshmallow
+from .config import Config, Config_Test
+from flask_login import LoginManager
 
+login_manager = LoginManager()
 
 def create_app(test_config=None):
     """
@@ -23,8 +29,9 @@ def create_app(test_config=None):
     @rtype:
     """
     # create and configure the app
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder='static')
     api = Api(app)
+
     load_dotenv("../../.env.dev")
     swagger_ui_blueprint = get_swaggerui_blueprint(
         os.getenv("SWAGGER_URL"),
@@ -33,104 +40,64 @@ def create_app(test_config=None):
             'app_name': 'Access API'
         }
     )
-    if test_config is None:
-        app.config.from_mapping(
-            SECRET_KEY=os.getenv("SECRET_KEY"),
-            SQLALCHEMY_DATABASE_URI=os.getenv("SQLALCHEMY_DATABASE_URI")
-        )
-    else:
-        app.config.from_mapping(
-            SECRET_KEY=os.getenv("SECRET_KEY"),
-            SQLALCHEMY_DATABASE_URI=os.getenv("TEST_SQLALCHEMY_DATABASE_URI")
-        )
 
+    if test_config is None:
+        app.config.from_object(Config)
+    else:
+        app.config.from_object(Config_Test)
 
     migrate = Migrate(app, db, 'project/migrations')
-
     db.init_app(app)
+    login_manager.init_app(app)
+    ma = Marshmallow()
+    ma.init_app(app)
 
-    class HelloWorld(Resource):
-        def get(self):
-            """
-            @return: Hello world, <SQLALCHEMY_DATABASE_URI>
-            @rtype: String
-            """
-            return 'SQLALCHEMY_DATABASE_URI:   '+str(os.getenv("SQLALCHEMY_DATABASE_URI")), 200
+    @app.route('/halo')
+    def halo():
+        return "halo"
 
+    @app.route('/haloo')
+    def haloo():
+        return {"message": "halo"}, 200
 
-    class Seed(Resource):
-        def get(self):
-            """
-            @return: Hello, world!
-            @rtype: String
-            """
-            subprocess.run(["flask", "db", "upgrade"])
-            subprocess.run(["flask", "db", "migrate"])
-            subprocess.run(["flask", "db", "upgrade"])
-            subprocess.run(["flask", "seed"])
-            return {"message": "Hello, World!"}, 200
+    class RequestFormatter(logging.Formatter):
+        def format(self, record):
+            if has_request_context():
+                record.url = request.url
+                record.remote_addr = request.remote_addr
+                record.method = request.method
+            else:
+                record.url = None
+                record.remote_addr = None
+
+            return super().format(record)
+    handler = logging.handlers.RotatingFileHandler('app.log', maxBytes=1024 * 1024)
+    formatter = RequestFormatter(
+        '[%(asctime)s] %(remote_addr)s  requested %(method)s %(url)s\n'
+        '%(levelname)s in %(module)s: %(message)s'
+    )
+    handler.setFormatter(formatter)
+    logger = logging.getLogger('werkzeug')
+    logger.setLevel(logging.INFO)
+
+    app.logger.addHandler(handler)
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+
 
 
     app.register_blueprint(swagger_ui_blueprint, url_prefix=os.getenv("SWAGGER_URL"))
     app.register_blueprint(films_api)
     app.register_blueprint(directors_api)
     app.register_blueprint(login_api)
-    api.add_resource(HelloWorld, "/")
-    api.add_resource(Seed, "/api/seed")
-
-
-    def seed_from_file_decorator(function):
-        def wrapper(*args, **kwargs):
-            result = function(*args, **kwargs)
-            with open(result[0], "r") as f:
-                data = list(csv.reader(f, delimiter=","))
-            is_created = result[2].query.first()
-            if not is_created:
-                for item in data:
-                    if result[2] is Film:
-                        genres = item[-1].split('_')
-                        item = item[0:-1]
-                        values = dict(zip(result[1], item))
-                        object_in = result[2](**values)
-
-                        for i in genres:
-                            genre = Genre.query.where(Genre.name == i).first()
-                            if genre is not None:
-                                object_in.genres.append(genre)
-                    else:
-                        values = dict(zip(result[1], item))
-                        object_in = result[2](**values)
-                    if 'is_admin' in result[1]:
-                        object_in.is_admin = bool(values['is_admin'])
-                    db.session.add(object_in)
-                    db.session.commit()
-            return result
-        return wrapper
-
-
-    @seed_from_file_decorator
-    def seed_from_file(file, table):
-        if table == 'Users':
-            return file, User.__table__.columns.keys(), User
-        if table == 'Directors':
-            return file, Director.__table__.columns.keys(), Director
-        if table == 'Genres':
-            return file, Genre.__table__.columns.keys(), Genre
-        if table == 'Films':
-            return file, Film.__table__.columns.keys(), Film
-
-
-
-    @app.cli.command('seed')
-    def seed():
-        with app.app_context():
-            subprocess.run(["flask", "db", "init"])
-            subprocess.run(["flask", "db", "upgrade"])
-            subprocess.run(["flask", "db", "migrate"])
-            subprocess.run(["flask", "db", "upgrade"])
-            seed_from_file("./project/static/seed/directors_mock.csv", 'Directors')
-            seed_from_file("./project/static/seed/users_mock.csv", 'Users')
-            seed_from_file("./project/static/seed/genres_mock.csv", 'Genres')
-            seed_from_file("./project/static/seed/films_mock.csv", 'Films')
+    app.register_blueprint(genres_api)
 
     return app
+
+
+"""    @login_manager.unauthorized_handler
+    def unauthorized():
+        # do stuff
+        return {"message":"login first"}"""
