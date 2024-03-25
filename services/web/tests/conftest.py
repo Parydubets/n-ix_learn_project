@@ -1,11 +1,11 @@
 import pytest
+from dotenv import load_dotenv
 from ..project import create_app
+from ..project.models import db
 
 @pytest.fixture()
 def app():
-
-    app = create_app("test")
-
+    app = create_app(test_config="testing")
     yield app
 
 
