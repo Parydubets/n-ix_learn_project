@@ -16,7 +16,7 @@ class DirectorsApi(Resource):
     def post(self):
         current_app.logger.info("Adding new director")
         current_app.logger.info("args: {}".format(request.args))
-        return create_director(**request.args), 200
+        return create_director(**request.args)
 
 
 
@@ -26,10 +26,10 @@ class DirectorApi(Resource):
         return (get_director(id))
 
     def put(self, id):
-        current_app.logger.info("Updating director with id={}".format.id)
+        current_app.logger.info("Updating director with id={}".format(id))
         current_app.logger.info("args: {}".format(request.args))
-        return update_director(id, **request.args), 200
+        return update_director(id, **request.args)
 
     def delete(self, id):
-        current_app.logger.info("Deleting director with id={}".format.id)
-        return delete_director(id), 200
+        current_app.logger.info("Deleting director with id={}".format(id))
+        return delete_director(id)

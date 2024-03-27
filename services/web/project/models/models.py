@@ -26,7 +26,7 @@ class Director(db.Model):
     first_name      = Column(String, nullable=False)
     last_name       = Column(String, nullable=False)
     date_of_birth   = Column(Date, nullable=False)
-    films = db.relationship('Film', backref='director')
+    films = db.relationship('Film', backref='director', lazy='subquery')
 
 
 
@@ -69,7 +69,6 @@ class Film(db.Model):
     user_id   = mapped_column(ForeignKey("users.id"))
     director_id   = db.Column(db.Integer, db.ForeignKey('directors.id'),
         nullable=True)
-    #director_id   = mapped_column(String, ForeignKey("directors.id", ondelete='SET DEFAULT'), server_default="unknown")
     genres = db.relationship(
         "Genre", secondary=association_table, backref=db.backref('films'), cascade='save-update')
 

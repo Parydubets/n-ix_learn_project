@@ -11,7 +11,7 @@ from flask_login import current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
 film_kwargs_pool        = ["name", "release_date", "description", "rating",
-                           "poster", "user_id", "genres", "director"]
+                           "poster", "genres", "director"]
 director_kwargs_pool    = ["first_name", "last_name", "date_of_birth"]
 args_list               = ["page", "limit", "sort", "genre", "director",
                            "date_from", "date_to"]
@@ -40,17 +40,14 @@ def get_item_with_filter(data, type, filter):
 
 def delete_item_with_id(serialize, type, id):
     item = get_item_with_id(type, id)
-    if item is None:
-        current_app.logger.warning("No items with id={}".format(id))
-        return {"error": "No items with this id"}, 400
     try:
+        item_dump = serialize.dump(item)
         db.session.delete(item)
         db.session.commit()
-        item = serialize.dump(item)
-        return {"deleted": item}
+        return {"deleted": item_dump}
     except:
         current_app.logger.warning("Something went wrong")
-        return {"error": "something went wrong"}, 400
+        return {"error": "something went wrong"}
 
 
 def check_author(user):
@@ -93,10 +90,6 @@ def check_film_fileds(**kwargs):
         for item in kwargs["genres"]:
             if item not in genres:
                 errors.append("No genre with name {}".format(item))
-    if "user_id" in keys:
-        user = get_item_with_id(User, kwargs["user_id"])
-        if user is None:
-            errors.append("No user with id {}".format( kwargs["user_id"]))
 
     return errors
 
@@ -234,13 +227,16 @@ def get_films(**kwargs):
 def get_film(id):
     movie = get_item_with_id(Film, id)
     if movie is None:
-        current_app.logger.warning("No films with id={}".format(id))
-        return {"error": "No items with whis id"}, 400
+        current_app.logger.warning("No movies with id={}".format(id))
+        return {"error": "No items with this id"}, 400
     result = film.dump(movie)
     return result
 
 def get_film_img(id):
     movie = get_item_with_id(Film, id)
+    if movie is None:
+        current_app.logger.warning("No movies with id={}".format(id))
+        return {"error": "No items with whis id"}
     return movie.poster
 
 
@@ -250,9 +246,11 @@ def add_film(**kwargs):
 
     if "description" not in kwargs:
         kwargs["description"] = ""
-    if len(kwargs) != 8:
+    if len(kwargs) != 7:
         errors.append("check parameters again")
-
+    if len(errors) > 0:
+        current_app.logger.warning("errors: {}".format(errors))
+        return {"errors": errors}, 400
     check_name = get_item_with_filter(kwargs["name"], Film, Film.name)
     if len(check_name)>0:
         errors.append(check_name)
@@ -266,16 +264,14 @@ def add_film(**kwargs):
         current_app.logger.warning("errors: {}".format(errors))
         return {"errors": errors}, 400
 
-    user = get_item_with_id(User, kwargs["user_id"])
     genres = get_genres_list(kwargs["genres"])
-    id = get_last_id(Film)
     obj = {
         "name": kwargs["name"],
         "release_date": kwargs["release_date"],
         "description": kwargs["description"],
         "rating": kwargs["rating"],
         "poster": kwargs["poster"],
-        "user_id": user.id,
+        "user_id": current_user.id,
         "director_id": director.id,
     }
     obj=Film(**obj)
@@ -295,12 +291,12 @@ def update_film(id, **kwargs):
             errors.append(director)
         kwargs["director"] = director
     movie = get_item_with_id(Film, id)
-    check_author(movie.user)
 
-    if check_author(movie.user) is False:
-        errors.append("Not an author or admin")
     if movie is None:
-        errors.append("No items with this id")
+        current_app.logger.warning("No movies with id={}".format(id))
+        return {"error": "No items with whis id"}, 400
+    elif check_author(movie.user) is False:
+        errors.append("Not an author or admin")
 
     if len(errors) > 0:
         current_app.logger.warning("errors: {}".format(errors))
@@ -318,6 +314,9 @@ def update_film(id, **kwargs):
 
 def delete_film(id):
     movie = get_item_with_id(Film, id)
+    if movie is None:
+        current_app.logger.warning("No movies with id={}".format(id))
+        return {"error": "No items with whis id"}
     if check_author(movie.user) is False:
         current_app.logger.warning("user with id={} is not an author or admin".format(current_user.id))
         return {"error": "Not an author or admin"}, 400
@@ -383,6 +382,10 @@ def update_director(id, **kwargs):
 
 
 def delete_director(id):
+    director = get_item_with_id(Director, id)
+    if director is None:
+        current_app.logger.warning("No directors with id={}".format(id))
+        return {"error": "No items with whis id"}, 400
     return delete_item_with_id(director, Director, id)
 
 

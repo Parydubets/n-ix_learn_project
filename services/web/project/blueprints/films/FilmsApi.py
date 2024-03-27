@@ -25,7 +25,7 @@ class FilmsApi(Resource):
             current_app.logger.info("Trying to get poster file")
         except:
             current_app.logger.warning("No poster file")
-            return {"error": "no poster file attached"}
+            return {"error": "no poster file attached"}, 400
         else:
             current_app.logger.info("args: {}".format(request.args))
             file.save(os.path.join("project/static/", filename))
@@ -52,20 +52,25 @@ class FilmApi(Resource):
         current_app.logger.info("args: {}".format(request.args))
         if len(error) > 0:
             current_app.logger.warning("errors: {}".format(error))
-            return {"errors: ": error}
+            return {"errors: ": error}, 400
         else:
-            return  update_film(id, **film_dict)
+            return update_film(id, **film_dict)
 
     @login_required
     def delete(self, id):
         current_app.logger.info("Deleting film with id={}".format(id))
-        return delete_film(id), 200
+        deletion = delete_film(id)
+        if 'error' in deletion:
+            return deletion, 400
+        return deletion, 200
 
 
 class FilmApiPoster(Resource):
     def get(self, id):
         current_app.logger.info("Getting poster for film with id={}".format(id))
         image_name = get_film_img(id)
+        if "error" in image_name:
+            return image_name, 400
         try:
             return send_from_directory(directory="static", path=image_name, as_attachment=True)
         except FileNotFoundError:

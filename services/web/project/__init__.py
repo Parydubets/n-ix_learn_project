@@ -19,7 +19,7 @@ from flask_login import LoginManager
 
 login_manager = LoginManager()
 
-def create_app(test_config=None):
+def create_app(config=Config):
     """
     The app creation func
 
@@ -41,10 +41,7 @@ def create_app(test_config=None):
         }
     )
 
-    if test_config is None:
-        app.config.from_object(Config)
-    else:
-        app.config.from_object(Config_Test)
+    app.config.from_object(config)
 
     migrate = Migrate(app, db, 'project/migrations')
     db.init_app(app)
@@ -84,7 +81,7 @@ def create_app(test_config=None):
 
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
+        return User.query.where(User.id == int(user_id)).first()
 
 
 

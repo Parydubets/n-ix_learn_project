@@ -15,6 +15,7 @@ def create_db():
         db.drop_all()
         db.create_all()
         db.session.commit()
+    return "created db"
 
 def seed_from_file_decorator(function):
     def wrapper(*args, **kwargs):
